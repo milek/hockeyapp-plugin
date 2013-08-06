@@ -151,6 +151,37 @@ public class HockeyappRecorder extends Recorder {
 			entity.addPart("status",
 					new StringBody(downloadAllowed ? "2" : "1"));
 			httpPost.setEntity(entity);
+            try {
+               String proxyHost = System.getProperty("https.proxyHost");
+               int proxyPort = 0;
+               try {
+                    proxyPort = Integer.parseInt(System.getProperty("https.proxyPort"));
+               } catch (Exception ex) {
+                    System.out.println("No proxy port found");
+               }
+
+               System.setProperty("java.net.useSystemProxies", "true");
+
+               ProxySelector ps = ProxySelector.getDefault();
+               List<Proxy> proxyList = ps.select(new URI(targetUrl));
+               Proxy proxy = proxyList.get(0);
+               if (proxy != null) {
+                     InetSocketAddress addr = ((InetSocketAddress) proxy.address());
+                     if (addr != null) {
+                         proxyHost = addr.getHostName();
+                         proxyPort = addr.getPort();
+                     }
+               }
+
+               boolean useProxy = proxyHost != null && proxyHost.length() > 0;
+
+               if (useProxy) {
+                     httpclient.getHostConfiguration().setProxy(proxyHost, proxyPort);
+               }
+
+            } catch (Exception ex) {
+               ex.printStackTrace();
+            }
 			HttpResponse response = httpclient.execute(httpPost);
 			HttpEntity resEntity = response.getEntity();
 
