@@ -5,32 +5,55 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
-import hudson.model.*;
+import hudson.model.Action;
+import hudson.model.BuildListener;
+import hudson.model.Result;
 import hudson.model.AbstractBuild;
-import hudson.tasks.*;
+import hudson.model.AbstractProject;
+import hudson.scm.ChangeLogSet.Entry;
+import hudson.tasks.BuildStepDescriptor;
+import hudson.tasks.BuildStepMonitor;
+import hudson.tasks.Publisher;
+import hudson.tasks.Recorder;
 import hudson.util.RunList;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+
+import net.sf.json.JSONObject;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.Predicate;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.client.HttpClient;
 import org.json.simple.parser.JSONParser;
 import org.kohsuke.stapler.DataBoundConstructor;
-import hudson.scm.ChangeLogSet.Entry;
-import java.io.*;
-import java.util.*;
-
-import net.sf.json.JSONObject;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
 
@@ -153,7 +176,7 @@ public class HockeyappRecorder extends Recorder {
 			httpPost.setEntity(entity);
             try {
                String proxyHost = System.getProperty("https.proxyHost");
-               int proxyPort = 0;
+               int proxyPort = 3128
                try {
                     proxyPort = Integer.parseInt(System.getProperty("https.proxyPort"));
                } catch (Exception ex) {
@@ -163,7 +186,7 @@ public class HockeyappRecorder extends Recorder {
                System.setProperty("java.net.useSystemProxies", "true");
 
                ProxySelector ps = ProxySelector.getDefault();
-               List<Proxy> proxyList = ps.select(new URI(targetUrl));
+               List<Proxy> proxyList = ps.select(httpPost.getURI());
                Proxy proxy = proxyList.get(0);
                if (proxy != null) {
                      InetSocketAddress addr = ((InetSocketAddress) proxy.address());
@@ -176,7 +199,8 @@ public class HockeyappRecorder extends Recorder {
                boolean useProxy = proxyHost != null && proxyHost.length() > 0;
 
                if (useProxy) {
-                     httpclient.getHostConfiguration().setProxy(proxyHost, proxyPort);
+            	   HttpHost proxyHttpHost = new HttpHost(proxyHost, proxyPort);
+            	   httpclient.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, proxyHttpHost);
                }
 
             } catch (Exception ex) {
