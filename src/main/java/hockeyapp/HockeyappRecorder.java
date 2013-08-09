@@ -176,7 +176,7 @@ public class HockeyappRecorder extends Recorder {
 			httpPost.setEntity(entity);
             try {
                String proxyHost = System.getProperty("https.proxyHost");
-               int proxyPort = 3128
+               int proxyPort = 3128;
                try {
                     proxyPort = Integer.parseInt(System.getProperty("https.proxyPort"));
                } catch (Exception ex) {
